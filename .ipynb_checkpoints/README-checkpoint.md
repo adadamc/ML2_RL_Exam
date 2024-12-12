@@ -64,7 +64,7 @@ We will need a few libraries in order to:
 - Debug / Monitor Performance of our Q-Learning Algorithm
 
 These can be imported as:
-```
+```python
 import gymnasium as gym
 import numpy as np
 import time
@@ -91,15 +91,42 @@ The `desc` argument can be used to customize the map.
 |S|Start tile|
 |G|Goal tile|
 |F|Frozen tile|
-|G|Tile With a Hole|
+|H|Tile With a Hole|
 
 The `desc` argument is written in the following format (for 4x4): `desc=["SFFF", "FHFH", "FFFH", "HFFG"]`.
 
 For example, `env = gym.make("FrozenLake-v1", map_name="4x4", render_mode="human", desc=["SHHH", "HHHH", "GGGG", "FFFF"])` will create the following environment:
 </br>
 ![Custom map example](Resources/custommap4x4.png)
+</br>
+Additionally, the generate_random_map function can be imported and used to generate a random map of any size.
+```python
+from gymnasium.envs.toy_text.frozen_lake import generate_random_map
+env = gym.make("FrozenLake-v1", desc=generate_random_map(size=12), render_mode="human")
+```
+The above code generated this 12x12 environment:
+![Custom map example](Resources/largemap.png)
 
+#### render_mode
+To help visualize what is going on the environment, there are various render options. By default, `render_mode` is set to None as it would not make sense to visually print tens of thousands, or even millions of episodes.
 
+|render_mode|Description|
+|---------|-----------|
+|None|No render is computed **(Default)**|
+|human|Continuous rendering in the current display / terminal. The images shown earlier in this guide are all from the human render_mode.|
+|rgb_array|Not used in this guide, more info: https://gymnasium.farama.org/api/env/#gymnasium.Env.render|
+|ansi|Not used in this guide, more info: https://gymnasium.farama.org/api/env/#gymnasium.Env.render|
+|rgb_array_list|Not used in this guide, more info: https://gymnasium.farama.org/api/env/#gymnasium.Env.render|
+
+**For now, we will create a function `run_episodes` to allow us to run a specified number of episodes in an environment, gather the results, and specify variables in our Q-Learning algorithm.** The paramaters of this function will be explained as the guide continues.
+
+```python
+def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, epsilon_change=0.01, slippery=True, render=None, debug=False):
+    env = gym.make("FrozenLake-v1", map_name="8x8", is_slippery=slippery, render_mode=render)
+```
+
+## Keeping Track of Results
+We will create some NumPy arrays to help track results so we can see the effectiveness of our implementation.
 
 ## Q-Learning Implementation
 ### Results
