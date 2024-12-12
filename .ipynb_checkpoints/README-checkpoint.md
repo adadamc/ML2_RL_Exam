@@ -35,7 +35,7 @@ When creating the environment, `is_slippery` can be set to True or False. If dis
 </br>
 is_slippery=False             |  is_slippery=True
 :-------------------------:|:-------------------------:
-![](Resources/notslippery_chances.png)  |  ![](resources/slippery_chances.png)
+![](Resources/notslippery_chances.png)  |  ![](Resources/slippery_chances.png)
 
 When taking action 2 (go right), the `is_slippery` setting determines movement probabilities. If disabled, you always move right. If enabled, you move right with only a 1/3 probability, and there's an equal chance of moving in either perpendicular direction. In this case you could go up or down as well. 
 <br/><br/>
@@ -58,7 +58,48 @@ The rewards structure for Frozen Lake is very simple. You are only rewarded for 
 While there is technically no negative reward, reaching the episode limit or falling into a hole is undesirable as we will not get a reward for that episode, and we will be unable to tell if the actions we took in that episode were in the "right direction" up to a certain point as we receive no positive feedback for partial progress.
 
 ## Setup
+### Libraries / Imports
+We will need a few libraries in order to:
+- Use Gymnasium
+- Debug / Monitor Performance of our Q-Learning Algorithm
+
+These can be imported as:
+```
+import gymnasium as gym
+import numpy as np
+import time
+import math
+from matplotlib import pyplot as plt
+```
 ### Initializing the Environment
+The Frozen Lake environment can be initalized with the `gym.make('FrozenLake-v1')` command. There are various arguments that can be used to customize the environment.
+
+#### map_name
+The `map_name` argument allows us to specify the map size, either `4x4` or `8x8`. In our examples, we will be using 8x8.
+```
+gym.make('FrozenLake-v1', map_name="8x8")
+```
+
+gym.make('FrozenLake-v1', map_name="8x8")|gym.make('FrozenLake-v1', map_name="4x4")
+:-------------------------:|:-------------------------:
+![](Resources/8x8Image.png)  |  ![](Resources/4x4Image.png)
+
+#### desc
+The `desc` argument can be used to customize the map.
+|Letter|Tile|
+|---------|-----------|
+|S|Start tile|
+|G|Goal tile|
+|F|Frozen tile|
+|G|Tile With a Hole|
+
+The `desc` argument is written in the following format (for 4x4): `desc=["SFFF", "FHFH", "FFFH", "HFFG"]`.
+
+For example, `env = gym.make("FrozenLake-v1", map_name="4x4", render_mode="human", desc=["SHHH", "HHHH", "GGGG", "FFFF"])` will create the following environment:
+</br>
+![Custom map example](Resources/custommap4x4.png)
+
+
 
 ## Q-Learning Implementation
 ### Results
