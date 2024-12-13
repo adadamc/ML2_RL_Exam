@@ -72,7 +72,7 @@ import math
 from matplotlib import pyplot as plt
 ```
 ### Initializing the Environment
-The Frozen Lake environment can be initalized with the `gym.make('FrozenLake-v1')` command. There are various arguments that can be used to customize the environment.
+The Frozen Lake environment can be initialized with the `gym.make('FrozenLake-v1')` command. There are various arguments that can be used to customize the environment.
 
 #### map_name
 The `map_name` argument allows us to specify the map size, either `4x4` or `8x8`. In our examples, we will be using 8x8.
@@ -126,9 +126,9 @@ def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, 
     env = gym.make("FrozenLake-v1", map_name="8x8", is_slippery=slippery, render_mode=render)
 ```
 
-I have set some default values for a lot of these paramaters, however, optimal values for these can vary based on map size, episode count, the `is_slippery` setting, and any other environment changes. `learning_rate`, `discount_factor`, `epsilon`, and `epsilon_change` will be explained further down in the guide (as it relates more to the Q-Learning calculation that will be used). The other paramaters do the following:
+I have set some default values for a lot of these parameters, however, optimal values for these can vary based on map size, episode count, the `is_slippery` setting, and any other environment changes. `learning_rate`, `discount_factor`, `epsilon`, and `epsilon_change` will be explained further down in the guide (as it relates more to the Q-Learning calculation that will be used). The other parameters do the following:
 
-|Paramater|Description|
+|Parameter|Description|
 |---------|-----------|
 |episodes|Episode count (ex. 500 episodes would mean that the "game" is played 500 times until we reach one of the end conditions for each episode)|
 |slippery|`True` or `False`, enables or disables `is_slippery` option in the environment|
@@ -555,7 +555,7 @@ Q-Values:
  ...
  [7.03089846e-02 8.50943883e-01 2.65382341e-01 2.05714098e-01] # Position 31 (Go down)
  ...
- [0.00000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00]] # Position 63 (Goal position, no Q-Value calculations occured here since no further actions are needed)
+ [0.00000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00]] # Position 63 (Goal position, no Q-Value calculations occurred here since no further actions are needed)
 ```
 
 We can see that the best result is in 14 actions and it is to go down 1 space, then to the furthest right position, then down to the bottom. Of course this is with `is_slippery` mode set to `False`, we will see that with it on later, the results will change significantly.
@@ -590,7 +590,7 @@ We will compare the success rate (cumulative to the current episode) at every 5,
 |0.0001|	0.6%|	1.9%|	4.6%|	9.4%|	15.9%|	23.4%|	30.8%|	38.0%|	44.6%|	50.2%|
 |0.00001|	0.5%|	1.9%|	5.0%|	9.9%|	15.6%|	22.2%|	29.5%|	36.7%|	43.5%|	49.1%|
 
-We can see that overall, the best results with a non-changing learning rate is to have $0.001 < \alpha < 0.01$ (a low learning rate). This means that we update our Q-Values slowly as opposed to rapidly. However, the results tend to show that a higher learning rate is optimal earlier in the episode count (because we have not run a lot of episodes yet, it is very important to quickly learn a good path at this point). While I did not implement it in this code, this shows that it would likely be benefical to add a decay to the learning rate, similar to epsilon, or have a cut-off point where it drops suddenly after a certain episode count.
+We can see that overall, the best results with a non-changing learning rate is to have $0.001 < \alpha < 0.01$ (a low learning rate). This means that we update our Q-Values slowly as opposed to rapidly. However, the results tend to show that a higher learning rate is optimal earlier in the episode count (because we have not run a lot of episodes yet, it is very important to quickly learn a good path at this point). While I did not implement it in this code, this shows that it would likely be beneficial to add a decay to the learning rate, similar to epsilon, or have a cut-off point where it drops suddenly after a certain episode count.
 
 #### Discount Factor
 
@@ -687,7 +687,7 @@ We can see that the agent is moving in a "weird" path since it is often being mo
 Negative rewards could be used to change the results. If we wanted to incentivize a shorter path length (even if it is riskier) in `is_slippery` mode, we could add a small negative reward (ex. -0.01) to each frozen block to incentivize reaching an end state quicker. It would also potentially be valuable to add a larger negative reward for falling into a hole. If a negative reward is given for each frozen block reached, the agent may wish to end the game by falling into a hole to stop the negative rewards quickly, so it would be valuable to disincentivize falling into a hole to a certain extent as well.
 
 ## Conclusion
-Q-Learning is valuable for finding an optimal path that maximizes rewards. Based on the environment, it may be valuable to collect smaller rewards on the way or immediatly go for the "grand prize". Adding in the chance for unintended consequences also changes the playstyle of the agent, by lowering the importance of finding a shortest path, and instead encouraging the agent to find the safest path given potential unintended consequences. Various variables can be adjusted ($\epsilon$,$\alpha$,$\gamma$, etc.) to try and train an agent more optimally given the layout of the environment. When epsilon reaches 0 (assuming a decaying epsilon), the agent is no longer learning, and is instead using the knowledge it has learned along the way to make what it believes to be the best decision.
+Q-Learning is valuable for finding an optimal path that maximizes rewards. Based on the environment, it may be valuable to collect smaller rewards on the way or immediately go for the "grand prize". Adding in the chance for unintended consequences also changes the play style of the agent, by lowering the importance of finding a shortest path, and instead encouraging the agent to find the safest path given potential unintended consequences. Various variables can be adjusted ($\epsilon$,$\alpha$,$\gamma$, etc.) to try and train an agent more optimally given the layout of the environment. When epsilon reaches 0 (assuming a decaying epsilon), the agent is no longer learning, and is instead using the knowledge it has learned along the way to make what it believes to be the best decision.
 
 
 ## Full Code
