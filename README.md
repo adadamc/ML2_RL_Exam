@@ -76,7 +76,7 @@ The Frozen Lake environment can be initalized with the `gym.make('FrozenLake-v1'
 
 #### map_name
 The `map_name` argument allows us to specify the map size, either `4x4` or `8x8`. In our examples, we will be using 8x8.
-```
+```python
 gym.make('FrozenLake-v1', map_name="8x8")
 ```
 
@@ -127,6 +127,24 @@ def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, 
 
 ## Keeping Track of Results
 We will create some NumPy arrays to help track results so we can see the effectiveness of our implementation.
+```python
+# 64 states (0 to 63) and 4 actions (0 = left, 1 = down, 2 = right, 3 = up)
+    q = np.zeros((env.observation_space.n, env.action_space.n)) # q-value storage
+    rng = np.random.default_rng() # random number from 0 to 1 (to determine if random action should be taken)
+    completions = np.full(episodes,False)
+    ep_lengths = np.zeros(episodes)
+    ep_epsilons = np.zeros(episodes)
+    checkpoints = math.floor(episodes/10) # Print statement at 10% completion intervals
+```
+
+|Variable|Used For|
+|----------|--------------------------|
+|q|Used for q-value storage, this starts off as an array of 0's of size 64x4. This allows us to store a Q-Value for every combination of position and action.|
+|rng|Generator used to choose a number between 0 and 1. If the random number generated is lower than our `epsilon` value, we will take a random action. Otherwise, we will take the best action as determined by our Q-Values.
+|completions|An array with an entry for each episode we run, it starts off as `False`. If we reach the goal in an episode, the value at the index for the current episode will be changed to `True`.|
+|ep_lengths|An array with an entry for each episode we run, it starts off with 0 values, when an episode completes, we will update the value at the index for the current episode with the amount of actions taken that episode.|
+|ep_epsilons|We will be using a decaying epsilon value (to be discussed later in the guide). This array has an entry for each episode, which will be updated with the epsilon value for each individual episode.|
+|checkpoints|Just for tracking the progress of running episodes. This calculates how many episodes it takes to reach 10% of episodes completed. We will print out some basic statistics at each 10% checkpoint.|
 
 ## Q-Learning Implementation
 ### Results
