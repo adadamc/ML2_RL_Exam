@@ -105,6 +105,7 @@ from gymnasium.envs.toy_text.frozen_lake import generate_random_map
 env = gym.make("FrozenLake-v1", desc=generate_random_map(size=12), render_mode="human")
 ```
 The above code generated this 12x12 environment:
+<br/>
 ![Custom map example](Resources/largemap.png)
 
 #### render_mode
@@ -118,12 +119,22 @@ To help visualize what is going on the environment, there are various render opt
 |ansi|Not used in this guide, more info: https://gymnasium.farama.org/api/env/#gymnasium.Env.render|
 |rgb_array_list|Not used in this guide, more info: https://gymnasium.farama.org/api/env/#gymnasium.Env.render|
 
-**For now, we will create a function `run_episodes` to allow us to run a specified number of episodes in an environment, gather the results, and specify variables in our Q-Learning algorithm.** The paramaters of this function will be explained as the guide continues.
+**For now, we will create a function `run_episodes` to allow us to run a specified number of episodes in an environment, gather the results, and specify variables in our Q-Learning algorithm.**
 
 ```python
-def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, epsilon_change=0.01, slippery=True, render=None, debug=False):
+def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, epsilon_change=0.01, slippery=True, render=None):
     env = gym.make("FrozenLake-v1", map_name="8x8", is_slippery=slippery, render_mode=render)
 ```
+
+I have set some default values for a lot of these paramaters, however, optimal values for these can vary based on map size, episode count, the `is_slippery` setting, and any other environment changes. `learning_rate`, `discount_factor`, `epsilon`, and `epsilon_change` will be explained further down in the guide (as it relates more to the Q-Learning calculation that will be used). The other paramaters do the following:
+
+|Paramater|Description|
+|---------|-----------|
+|episodes|Episode count (ex. 500 episodes would mean that the "game" is played 500 times until we reach one of the end conditions for each episode)|
+|slippery|`True` or `False`, enables or disables `is_slippery` option in the environment|
+|render|One of the above render_mode options can be specified here. `'human'` is useful, however, it should not be used for a large episode count as it significantly increases runtime|
+
+
 
 ## Keeping Track of Results
 We will create some NumPy arrays to help track results so we can see the effectiveness of our implementation.
@@ -146,7 +157,109 @@ We will create some NumPy arrays to help track results so we can see the effecti
 |ep_epsilons|We will be using a decaying epsilon value (to be discussed later in the guide). This array has an entry for each episode, which will be updated with the epsilon value for each individual episode.|
 |checkpoints|Just for tracking the progress of running episodes. This calculates how many episodes it takes to reach 10% of episodes completed. We will print out some basic statistics at each 10% checkpoint.|
 
-## Q-Learning Implementation
+## Running Episodes and Q-Learning Implementation
+
+Let's look at the code for running each episode, choosing an action, and updating our q-values/results.
+
+```python
+ for _ in range(episodes):
+        state, info = env.reset()
+        
+        if (_+1)%checkpoints==0:
+            print("Ep", _, " , Epsi:", round(epsilon,3), " | Comp:", completions.sum(), " | Success Rate:", round(completions.sum()/_,3)*100,"%")
+          
+
+        while True:
+
+            if rng.random() < epsilon:
+                action = env.action_space.sample() # Random action
+            else:
+                action = np.argmax(q[state,:])
+
+            # new_state: After taking the action calculated above, what position are we now in? (0-63)
+            # reward: The reward for taking that action (reach goal = +1, reach hole/frozen = 0)
+            # terminated: True if the player moves into a hole OR the player reaches the goal
+            # truncation: True if the limit (length of episode) is reached, this is 200 for 8x8 env
+            # info: number from 0 to 1 with odds of taking the action requested (1/3 if is_slippery, 1 otherwise)
+            new_state, reward, terminated, truncated, info = env.step(action)
+
+            if reward == 1:
+                completions[_] = True
+
+            q[state,action] = q[state,action] + learning_rate * (reward + discount_factor * max(q[new_state,:]) -q[state,action])
+
+            state = new_state
+            ep_lengths[_] += 1
+
+            if terminated or truncated:
+                break
+
+        ep_epsilons[_] = epsilon
+        epsilon -= epsilon_change # Lower Epsilon by specified amount
+        if epsilon < 0:
+            epsilon = 0
+```
+
+Let's break it down step by step:
+
+### Monitoring Current Progress
+
+```python
+for _ in range(episodes):
+        state, info = env.reset()
+```
+
+In the above code section we run a for loop for the specified number of episodes. We start each iteration with an environment reset. `env.reset()` will return the starting state (`state`) and debug info (`info`).
+
+The values returned by the reset function are as follows:
+|Variable|Returned Value|
+|---------|-----------|
+|state|`0` (this is the starting position)|
+|info|`{'prob': 1}` (since you always start in position 0)|
+
+```python
+if (_+1)%checkpoints==0:
+            print("Ep", _, " , Epsi:", round(epsilon,3), " | Comp:", completions.sum(), " | Success Rate:", round(completions.sum()/_,3)*100,"%")
+```
+
+The **above code section is optional**. It is used to print out some of the more important statistics at every 10% checkpoint (ex. if there are 1,000 episodes: this will be printed out every 100 episodes)
+
+Example output: `Episode 1999  , Epsilon: 0.78  | Completions so Far: 40  | Success Rate so Far: 2.0 %`
+<br/>
+This output tells us that as of the 2,000th episode (count starts at 0), the epsilon value is 0.78, 40 of the 2,000 episodes (2.0%) have resulted in reaching the goal.
+
+### Epsilon and Exploration
+
+```python
+while True:
+
+            if rng.random() < epsilon:
+                action = env.action_space.sample() # Random action
+            else:
+                action = np.argmax(q[state,:])
+```
+In the above code block, we will run this loop forever (there is a `break` condition later if we fall into a hole, reach the goal, or reach our action limit).  This is the point where we decide if we are going to choose a random action or what we have currently observed to be the best action. `rng.random()` returns a number between [0.0,1.0). Therefore, if our `epsilon` value is set to 1: we will **always take a random action**, this random action is chosen through the `env.action_space.sample()` function. Likewise, if our `epsilon` value is set to 0: we will **always take an action based on the optimal q-value in our given state**. For example, if we are picking an optimal Q-Value and are currently in state position 15, we will choose to go left, right, up, or down based on which of the 4 actions are highest in index 15 of the state dimension in our `q` array. This is checked via `np.argmax(q[state,:])`.
+
+**It is generally best to start with a very high epsilon (1 since we have no current data to base our choices off of)**. This ensures we initially only choose random actions. Overtime, as our `q` array gets updated, we will make more decisions based off of that.
+
+|$$\epsilon$$|Odds|
+|---------|-----------|
+|1|Random action is chosen 100% of the time|
+|0.75|Random action is chosen 75% of the time, 25% of the time we choose what we currently believe is the optimal action given our current state|
+|0.5|Random action is chosen 50% of the time, 50% of the time we choose what we currently believe is the optimal action given our current state|
+|0.25|Random action is chosen 25% of the time, 75% of the time we choose what we currently believe is the optimal action given our current state|
+|0|We always choose what we believe is the optimal action given our current state **(no exploration)**|
+
+It is important to have a balance when it comes to epsilon values. 
+
+If it is always high, we will never actually use what we have observed before, which will also make it more difficult to find our goal and optimal solution, as it is very unlikely our agent will even be able to make it near the goal if it can not use the information it has gathered along the way to avoid falling into a hole or going in circles.
+
+If the epsilon value is too low, we risk missing out on a potentially better solution, since we will always be going with what we **think** is best. Imagine if you are driving with a GPS that has no real-time traffic, outdated maps, and old speed limits. It may tell you a road is the best for getting to your destination, but what if a new road with less traffic and a higher speed limit has been built since then? If we never explore, we risk missing out on a more optimal path.
+
+
+
+
+
 ### Results
 
 
