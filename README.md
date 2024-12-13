@@ -560,7 +560,7 @@ Q-Values:
 
 We can see that the best result is in 14 actions and it is to go down 1 space, then to the furthest right position, then down to the bottom. Of course this is with `is_slippery` mode set to `False`, we will see that with it on later, the results will change significantly.
 
-#### Learning Rate
+### Learning Rate
 Let's try to find an ideal learning rate, all other variables will be consistent across these tests:
 ```
 Episodes: 50000
@@ -592,11 +592,11 @@ We will compare the success rate (cumulative to the current episode) at every 5,
 
 We can see that overall, the best results with a non-changing learning rate is to have $0.001 < \alpha < 0.01$ (a low learning rate). This means that we update our Q-Values slowly as opposed to rapidly. However, the results tend to show that a higher learning rate is optimal earlier in the episode count (because we have not run a lot of episodes yet, it is very important to quickly learn a good path at this point). While I did not implement it in this code, this shows that it would likely be beneficial to add a decay to the learning rate, similar to epsilon, or have a cut-off point where it drops suddenly after a certain episode count.
 
-#### Discount Factor
+### Discount Factor
 
 Discount Factor was tested as well, however, due to there being no rewards (positive or negative) other than the end goal, it had a smaller impact on the results. It is important to use a higher discount factor though, considering most actions have no immediate reward, a discount factor near or at 0 would have devestating results. The observations done can be found in this [Excel document](https://github.com/adadamc/ML2_RL_Exam/blob/main/VariableComparison.xlsx), but it is very clear that in this particular environment a higher discount factor is optimal.
 
-#### Slippery Mode Enabled
+### Slippery Mode Enabled
 
 When `is_slippery` is set to `True`, the problem becomes a lot more complex. In this case the action we intend to take only occurs 1/3 of the time, we have an equal chance of going in either perpendicular direction. It is no longer realistic to eventually converge to a 100% success rate. The Q-Learning algorithm will now have to find a path that fully ignores finding the normal shortest path, but instead finds one where slipping in a perpendicular direction does not result in falling into a hole as often. Previously, we found that 20,000 episodes was a good number to reliably reach 100% success by the end, this is no longer the case.
 
