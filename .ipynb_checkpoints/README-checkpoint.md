@@ -560,13 +560,134 @@ Q-Values:
 
 We can see that the best result is in 14 actions and it is to go down 1 space, then to the furthest right position, then down to the bottom. Of course this is with `is_slippery` mode set to `False`, we will see that with it on later, the results will change significantly.
 
+#### Learning Rate
+Let's try to find an ideal learning rate, all other variables will be consistent across these tests:
+```
+Episodes: 50000
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 2.3e-05
+Slippery: False
+```
 
+We will compare the success rate (cumulative to the current episode) at every 5,000 episodes.
 
+|||
+|--|--|
+|***BOLD ITALICS***|Best Result at Episode #|
+|**BOLD**|Second Best Result at Episode #|
+
+|Learning Rate|Ep 5,000|Ep 10,000|Ep 15,000|Ep 20,000|Ep 25,000|Ep 30,000|Ep 35,000|Ep 40,000|Ep 45,000|Ep 50,000|
+|------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+|0.95|	0.5%|	0.6%|	1.2%|	2.3%|	4.5%|	8.5%|	13.9%|	20.8%|	28.9%|	36.0%|
+|0.8|	0.6%|	0.6%|	1.3%|	2.5%|	4.6%|	8.3%|	13.5%|	20.4%|	28.6%|	35.7%|
+|0.5|	0.7%|	0.9%|	1.5%|	2.6%|	4.8%|	8.6%|	13.7%|	20.6%|	28.7%|	35.8%|
+|0.2|	0.6%|	1.9%|	2.1%|	3.2%|	5.6%|	9.8%|	15.3%|	22.4%|	30.4%|	37.4%|
+|0.05|	***0.9%***|	***2.5%***|	5.5%|	7.6%|	9.6%|	13.5%|	18.7%|	25.4%|	33.1%|	39.8%|
+|0.02|	**0.8%**|	2.4%|	6.0%|	11.6%|	17.3%|	22.2%|	28.0%|	34.4%|	41.3%|	47.2%|
+|0.01|	0.6%|	2.3%|	***6.3%***|	***11.9%***|	***18.7%***|	**25.6%**|	**32.8%**|	**39.7%**|	**46.1%**|	**51.5%**|
+|0.001|	0.6%|	***2.5%***|	**6.1%**|	**11.8%**|	**18.5%**|	***25.7%***|	***32.9%***|	***39.8%***|	***46.2%***|	***51.6%***|
+|0.0001|	0.6%|	1.9%|	4.6%|	9.4%|	15.9%|	23.4%|	30.8%|	38.0%|	44.6%|	50.2%|
+|0.00001|	0.5%|	1.9%|	5.0%|	9.9%|	15.6%|	22.2%|	29.5%|	36.7%|	43.5%|	49.1%|
+
+We can see that overall, the best results with a non-changing learning rate is to have $0.001 < \alpha < 0.01$ (a low learning rate). This means that we update our Q-Values slowly as opposed to rapidly. However, the results tend to show that a higher learning rate is optimal earlier in the episode count (because we have not run a lot of episodes yet, it is very important to quickly learn a good path at this point). While I did not implement it in this code, this shows that it would likely be benefical to add a decay to the learning rate, similar to epsilon, or have a cut-off point where it drops suddenly after a certain episode count.
+
+#### Discount Factor
+
+Discount Factor was tested as well, however, due to there being no rewards (positive or negative) other than the end goal, it had a smaller impact on the results. It is important to use a higher discount factor though, considering most actions have no immediate reward, a discount factor near or at 0 would have devestating results. The observations done can be found in this [Excel document](https://github.com/adadamc/ML2_RL_Exam/blob/main/VariableComparison.xlsx), but it is very clear that in this particular environment a higher discount factor is optimal.
+
+#### Slippery Mode Enabled
+
+When `is_slippery` is set to `True`, the problem becomes a lot more complex. In this case the action we intend to take only occurs 1/3 of the time, we have an equal chance of going in either perpendicular direction. It is no longer realistic to eventually converge to a 100% success rate. The Q-Learning algorithm will now have to find a path that fully ignores finding the normal shortest path, but instead finds one where slipping in a perpendicular direction does not result in falling into a hole as often. Previously, we found that 20,000 episodes was a good number to reliably reach 100% success by the end, this is no longer the case.
+
+```python
+run_episodes(40000, epsilon_change=0.000026, slippery=True, learning_rate=0.005)
+```
+```
+Ran using the following settings:
+Episodes: 40000
+Learning Rate: 0.005
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 2.6e-05
+Slippery: True
+
+Episode 3999  , Epsilon: 0.896  | Completions so Far: 7  | Success Rate so Far: 0.2 %
+Episode 7999  , Epsilon: 0.792  | Completions so Far: 17  | Success Rate so Far: 0.2 %
+Episode 11999  , Epsilon: 0.688  | Completions so Far: 33  | Success Rate so Far: 0.3 %
+Episode 15999  , Epsilon: 0.584  | Completions so Far: 72  | Success Rate so Far: 0.5 %
+Episode 19999  , Epsilon: 0.48  | Completions so Far: 119  | Success Rate so Far: 0.6 %
+Episode 23999  , Epsilon: 0.376  | Completions so Far: 183  | Success Rate so Far: 0.8 %
+Episode 27999  , Epsilon: 0.272  | Completions so Far: 248  | Success Rate so Far: 0.8999999999999999 %
+Episode 31999  , Epsilon: 0.168  | Completions so Far: 371  | Success Rate so Far: 1.2 %
+Episode 35999  , Epsilon: 0.064  | Completions so Far: 494  | Success Rate so Far: 1.4000000000000001 %
+Episode 39999  , Epsilon: 0  | Completions so Far: 669  | Success Rate so Far: 1.7000000000000002 %
+
+Simple Breakdown:
+Episodes: 40000
+Successful Episodes: 669
+Failed Episodes: 39331
+Success Rate: 1.672 %
+```
+
+![40,000 episodes with is_slippery set to True](Resources/slip40k.png)
+
+We can see that even with double the number of episodes, we are now reaching a success rate of around 5-10% by the time $\epsilon = 0$. While not particularly of note yet, as we have nothing to compare it to with `is_slippery` enabled yet, note that the episode length is around 25 when epsilon reaches 0 (higher than the previous 14).
+
+Increasing the episode count to 85,000 results in a far better result:
+```python
+run_episodes(85000, epsilon_change=0.000013, slippery=True, learning_rate=0.005)
+```
+```
+Ran using the following settings:
+Episodes: 85000
+Learning Rate: 0.005
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 1.3e-05
+Slippery: True
+
+Episode 8499  , Epsilon: 0.89  | Completions so Far: 24  | Success Rate so Far: 0.3 %
+Episode 16999  , Epsilon: 0.779  | Completions so Far: 60  | Success Rate so Far: 0.4 %
+Episode 25499  , Epsilon: 0.669  | Completions so Far: 118  | Success Rate so Far: 0.5 %
+Episode 33999  , Epsilon: 0.558  | Completions so Far: 234  | Success Rate so Far: 0.7000000000000001 %
+Episode 42499  , Epsilon: 0.448  | Completions so Far: 416  | Success Rate so Far: 1.0 %
+Episode 50999  , Epsilon: 0.337  | Completions so Far: 1038  | Success Rate so Far: 2.0 %
+Episode 59499  , Epsilon: 0.227  | Completions so Far: 2264  | Success Rate so Far: 3.8 %
+Episode 67999  , Epsilon: 0.116  | Completions so Far: 4398  | Success Rate so Far: 6.5 %
+Episode 76499  , Epsilon: 0.006  | Completions so Far: 8102  | Success Rate so Far: 10.6 %
+Episode 84999  , Epsilon: 0  | Completions so Far: 12698  | Success Rate so Far: 14.899999999999999 %
+
+Simple Breakdown:
+Episodes: 85000
+Successful Episodes: 12699
+Failed Episodes: 72301
+Success Rate: 14.94 %
+```
+![85,000 episodes with is_slippery set to True](Resources/slip85k.png)
+
+By the time $\epsilon = 0$, we can see that our success rate has improved to around 55-60%. Episode length has also increased to around 60, we are reaching the goal more often, but taking a lot longer to get there.
+
+Increasing the episode count past this point makes the results a bit more stable, but overall does not impact them significantly (looking at only the results once $\epsilon = 0$). Here is 450,000 episodes:
+
+![450,000 episodes with is_slippery set to True](Resources/slip450k.png)
+
+Overall, it seems the best case scenario is around a 65-70% successful episode rate, with episode length varying between 60-70 on average (due to the odds of slipping, some episodes will be a lot shorter due to falling in a hole).
+
+Let's look at a few episodes based on the optimal Q-Values gathered from running 85,000 episodes:
+
+![450,000 episodes with is_slippery set to True](Resources/SlipVisual.gif)
+
+We can see that the agent is moving in a "weird" path since it is often being moved in an unintended direction. It is possible that it could fall into a hole unintentionally (especially near the end as there is a 50/50 chance in the last two moves that it either goes down (optimal) or to the left (into a hole)). The goal of the agent is to find a path that reaches the goal as often as possible **factoring in** these unintended actions.
 
 
 
 ## Potential Improvements
 ### Negative Rewards
+Negative rewards could be used to change the results. If we wanted to incentivize a shorter path length (even if it is riskier) in `is_slippery` mode, we could add a small negative reward (ex. -0.01) to each frozen block to incentivize reaching an end state quicker. It would also potentially be valuable to add a larger negative reward for falling into a hole. If a negative reward is given for each frozen block reached, the agent may wish to end the game by falling into a hole to stop the negative rewards quickly, so it would be valuable to disincentivize falling into a hole to a certain extent as well.
+
+## Conclusion
+Q-Learning is valuable for finding an optimal path that maximizes rewards. Based on the environment, it may be valuable to collect smaller rewards on the way or immediatly go for the "grand prize". Adding in the chance for unintended consequences also changes the playstyle of the agent, by lowering the importance of finding a shortest path, and instead encouraging the agent to find the safest path given potential unintended consequences. Various variables can be adjusted ($\epsilon$,$\alpha$,$\gamma$, etc.) to try and train an agent more optimally given the layout of the environment. When epsilon reaches 0 (assuming a decaying epsilon), the agent is no longer learning, and is instead using the knowledge it has learned along the way to make what it believes to be the best decision.
 
 
 ## Full Code
@@ -672,6 +793,9 @@ def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, 
 ```
 
 ## Additional Function to Visualize the Optimal Path Based on Q-Values
+
+This function can be ran at the end of `run_episodes` and is used to visualize the agent moving based on the final `q` values found.
+
 ```python
 def visualize_best_result(episodes, q, slippery=True):
     print("")
