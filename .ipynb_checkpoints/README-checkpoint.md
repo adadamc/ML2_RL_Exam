@@ -536,7 +536,30 @@ Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 1
 Action taken: Down  | Reward Given: 1.0  | Terminated: True  | Actions Taken: 14
 ```
 
+Here is a **sample** of the Q-Values at important states. We can see that at position 0, going down is the optimal action, then for positions 8-14, going right becomes optimal, afterwards going down is once again the best choice for every position on the furthest right column.
+
+```
+Q-Values:
+[[2.81814580e-03 1.30679639e-01 1.15779036e-03 2.36418326e-03] # Position 0 (Go down: Action 1 is the highest value as it has the lowest negative exponent)
+ ...
+ [5.42548374e-03 3.90323047e-04 1.85252191e-01 2.71799400e-03] # Position 8 (Go right: Action 2 is the highest value)
+ [4.84914345e-03 7.49614166e-04 2.52615681e-01 1.01329330e-03]
+ [8.90645199e-03 1.13049327e-03 3.31621752e-01 1.31121474e-03]
+ [1.49107212e-02 0.00000000e+00 4.19091755e-01 2.25907655e-03]
+ [2.16877219e-02 2.10303261e-03 5.09595695e-01 3.09215203e-03]
+ [3.27082481e-02 1.44863911e-02 5.96644768e-01 1.13061410e-03]
+ [3.88835775e-02 5.62562330e-02 6.74822453e-01 7.79188744e-03]
+ [8.31040013e-02 7.41649804e-01 1.33525439e-01 3.56161971e-02] # Position 15 (Go down: Action 1 is the highest value)
+ ...
+ [8.79612855e-02 7.99088605e-01 2.09761914e-01 1.51091071e-01] # Position 23 (Go down)
+ ...
+ [7.03089846e-02 8.50943883e-01 2.65382341e-01 2.05714098e-01] # Position 31 (Go down)
+ ...
+ [0.00000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00]] # Position 63 (Goal position, no Q-Value calculations occured here since no further actions are needed)
+```
+
 We can see that the best result is in 14 actions and it is to go down 1 space, then to the furthest right position, then down to the bottom. Of course this is with `is_slippery` mode set to `False`, we will see that with it on later, the results will change significantly.
+
 
 
 
