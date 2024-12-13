@@ -256,11 +256,111 @@ If it is always high, we will never actually use what we have observed before, w
 
 If the epsilon value is too low, we risk missing out on a potentially better solution, since we will always be going with what we **think** is best. Imagine if you are driving with a GPS that has no real-time traffic, outdated maps, and old speed limits. It may tell you a road is the best for getting to your destination, but what if a new road with less traffic and a higher speed limit has been built since then? If we never explore, we risk missing out on a more optimal path.
 
+### Taking our Action
+```python
+new_state, reward, terminated, truncated, info = env.step(action)
+
+            if reward == 1:
+                completions[_] = True
+```
+
+Using the `env.step()` function, we can pass our intended action chosen previously as an argument. Various variables are returned:
+
+|Variable|Returned Value|
+|---------|-----------|
+|new_state|an `int` value representing our new position (between 0-63 on the 8x8 environment)|
+|reward|a `number` value representing the reward gained from entering our new state (in this case: 1.0 if we reach the goal space, 0.0 otherwise)|
+|terminated|`bool` value. `True` if we reach the goal **OR** fall into a hole, `False` otherwise|
+|truncated|`bool` value. `True` if the length limit of the episode (200 for 8x8) is reached, `False` otherwise|
+|info|The chance of us ending up in the new state, `{'prob': 0.3333333333333333}` if `is_slippery` is enabled, `{'prob': 1}` otherwise.|
+
+**It is important to remember**, if `is_slippery` is enabled, you will not always go in the direction you intended, `new_state` will return the **ACTUAL** position you have ended up in.
+
+We will then also update our `completions` array at the index of the current episode (`_`) to `True` if we found the goal and received a reward.
+
+### Updating our Q-Value
+
+```python
+q[state,action] = q[state,action] + learning_rate * (reward + discount_factor * max(q[new_state,:]) -q[state,action])
+```
+
+The Q-Learning equation is as follows:
+$$Q(s, a) \leftarrow Q(s, a) + \alpha [r + \gamma \max_{a'} Q(s', a') - Q(s, a)]$$
+
+Where
+- $Q(s,a)$ is the Q-Value for state `s` and action `a`
+- $\alpha$ is the learning rate
+- `r` is the immediate reward
+- $\gamma$ is the discount factor
+- $\max_{a'} Q(s', a')$ is the maximum Q-value of our next state
+
+Going into further detail:
+
+#### Alpha (Learning Rate)
+
+$\alpha$ is our learning rate (and is usually a number between 0 and 1). A larger $\alpha$ means that the Q-Value is updated quicker based on the new information we found. This means faster learning but at the cost of potentially being unstable (value changing too quickly and the Q-Value becoming too high/low based on a single update). Lower values are more stable but will cause new information to impact the Q-Value less potentially leading us to need more episodes.
+
+#### Gamma (Discount Factor)
+
+$\gamma$ is our discount factor. $\gamma$ ranges from 0 to 1 (0 < $\gamma$ < 1). When $\gamma$ is 0, it means that the agent will only consider immediate rewards, meaning if it had the choice of getting 20 dollars today or 10 dollars today plus an additional 10,000 dollars tomorrow, it would choose to get 20 dollars today. It is **important to note that in Frozen Lake, you only receive a reward for reaching the end goal, so having a low gamma would be particularly problematic since you won't receive one the vast majority of the time**. If $\gamma$ is set to 1, future rewards will be valued just as much as the immediate reward received. Any values between 0 to 1 will be a balance, with lower values lowering the importance of future rewards.
+
+#### Q-Values
+
+We store Q-Values to determine what we have currently observed to be the best action to take given the current state (which is influenced by the values chosen for Gamma, Alpha, Epsilon, etc.). They are stored in the following format (for simplicity imagine there are **4 possible positions and 2 possible actions (left, right).**
+
+```
+[[0.5 0.21]
+ [0.95 0.01]
+ [0.51 0.49]
+ [0.02 0.83]]
+```
+
+In this example, if we are in state 1, we can see that we have found that going left is significantly better (0.95 vs 0.01) than going right. However, if we are in state 2, left is only slightly better (0.51 vs 0.49) than going right. We would still go left in all cases when deciding by Q-Values since we are only basing our decision off of the action with the **max** Q-Value. In this case, having a balanced epsilon value would help us still test the other possible actions (going right) to see if better results occur that way, instead of always going left.
+
+### Finishing the Episode
+
+```python
+            state = new_state
+            ep_lengths[_] += 1
+
+            if terminated or truncated:
+                break
+```
+
+Now that we have finished updating our Q-Value, we start by updating our `state` variable to the `new_state` value. Since an action was taken, we will update our tracking metric for episode lengths (`ep_lengths`) by increasing the value for this episode's (`_`) entry by 1.
+
+Finally, if this episode results in us reaching one of the 3 end conditions (goal reached, fell in hole, or episode length limit), we will break out of this loop and start a new episode. Otherwise, we will now go back to the start of the `while True:` loop.
+
+### Finishing All Episodes and Closing the Environment
+```python
+    time.sleep(0.5)
+    env.close()
+    
+    print("\nSimple Breakdown:")
+    print("Episodes:", episodes)
+    print("Successful Episodes:", completions.sum())
+    print("Failed Episodes:", (episodes-completions.sum()))
+    print("Success Rate:", round(((completions.sum())/(episodes))*100,3), "%")
+    print("Success Episode Array:", np.convolve(completions, np.ones(100), 'valid'))
+```
+
+After finishing the last episode, I have added a short pause (this is mostly for if we are visualizing the environment so the final result can be seen for longer. Afterwards, the environment is closed using `env.close()`, this will also close any rendering windows. Afterwards, some useful statistics are printed in the following format:
+
+```python
+Simple Breakdown:
+Episodes: 20000
+Successful Episodes: 9870
+Failed Episodes: 10130
+Success Rate: 49.35 %
+Success Episode Array: [  0.   0.   0. ... 100. 100. 100.]
+```
+
+The number of episodes, successful episodes, failed episodes, success rate, and success episode array (the number of successful episodes out of the last 100 episodes (between 0 to 100)).
+
+### Visualizing the Results
 
 
-
-
-### Results
+## Results and Observations
 
 
 ## Full Code
