@@ -302,7 +302,7 @@ $\alpha$ is our learning rate (and is usually a number between 0 and 1). A large
 
 #### Gamma (Discount Factor)
 
-$\gamma$ is our discount factor. $\gamma$ ranges from 0 to 1 (0 < $\gamma$ < 1). When $\gamma$ is 0, it means that the agent will only consider immediate rewards, meaning if it had the choice of getting 20 dollars today or 10 dollars today plus an additional 10,000 dollars tomorrow, it would choose to get 20 dollars today. It is **important to note that in Frozen Lake, you only receive a reward for reaching the end goal, so having a low gamma would be particularly problematic since you won't receive one the vast majority of the time**. If $\gamma$ is set to 1, future rewards will be valued just as much as the immediate reward received. Any values between 0 to 1 will be a balance, with lower values lowering the importance of future rewards.
+$\gamma$ is our discount factor. $\gamma$ ranges from 0 to 1 ($0 \leq \gamma \leq 1$). When $\gamma$ is 0, it means that the agent will only consider immediate rewards, meaning if it had the choice of getting 20 dollars today or 10 dollars today plus an additional 10,000 dollars tomorrow, it would choose to get 20 dollars today. It is **important to note that in Frozen Lake, you only receive a reward for reaching the end goal, so having a low gamma would be particularly problematic since you won't receive one the vast majority of the time**. If $\gamma$ is set to 1, future rewards will be valued just as much as the immediate reward received. Any values between 0 to 1 will be a balance, with lower values lowering the importance of future rewards.
 
 #### Q-Values
 
@@ -382,7 +382,7 @@ The number of episodes, successful episodes, failed episodes, success rate, and 
 
 ```
 
-This code will print out two plots side by side. The first plot takes the rolling sum of the last 100 completion values, for example if 40/100 of the last completion values are `True`, the plotted y-axis value at that episode will be `40`. On a second y-axis, we will also plot the Epsilon value, calculated as the rolling mean of the last 100 episodes. For example, if 100 episodes ago $\epsilon = 0.5$ and it went down at a linear rate to $\epsilon = 0.4$, the plotted value at that episode would be $\epsilon = 0.45$.
+This code will print out two plots side by side. The first plot takes the rolling sum of the last 100 completion values, for example if 40/100 of the last completion values are `True`, the plotted y-axis value at that episode will be `40`. On a second y-axis, we will also plot the Epsilon value, calculated as the rolling mean of the last 100 episodes. For example, if 100 episodes ago $\epsilon = 0.5$ and it went down at a linear rate to $\epsilon = 0.4$, the plotted value at that episode would be $\epsilon = 0.45$. Epsilon values can only be between 0 and 1 ($0 \leq \epsilon \leq 1$), so the y-limit on the graph has been set as such.
 
 The second plot will show the rolling average (last 100 episodes) episode length. This is the amount of actions taken before reaching one of the end conditions (falling into a hole, reaching the goal, episode length limit).
 
@@ -395,6 +395,155 @@ This is the final part of the `run_episodes` function. Let's look into some resu
 
 
 ## Results and Observations
+
+### Number of Episodes
+
+#### Low Episode Count
+
+It is important to include enough episodes when training an agent using Reinforcement Learning. Using around 1,000 episodes for example means that it is very likely the agent will not have enough time to find a path to the goal, let alone an optimal path.
+
+```python
+run_episodes(1110, epsilon_change=0.001, slippery=False, learning_rate=0.001)
+```
+
+```
+Ran using the following settings:
+Episodes: 1110
+Learning Rate: 0.001
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 0.001
+Slippery: False
+
+Ep 110  , Epsi: 0.89  | Comp: 0  | Success Rate: 0.0 %
+Ep 221  , Epsi: 0.779  | Comp: 0  | Success Rate: 0.0 %
+Ep 332  , Epsi: 0.668  | Comp: 0  | Success Rate: 0.0 %
+Ep 443  , Epsi: 0.557  | Comp: 0  | Success Rate: 0.0 %
+Ep 554  , Epsi: 0.446  | Comp: 0  | Success Rate: 0.0 %
+Ep 665  , Epsi: 0.335  | Comp: 0  | Success Rate: 0.0 %
+Ep 776  , Epsi: 0.224  | Comp: 0  | Success Rate: 0.0 %
+Ep 887  , Epsi: 0.113  | Comp: 0  | Success Rate: 0.0 %
+Ep 998  , Epsi: 0.002  | Comp: 0  | Success Rate: 0.0 %
+Ep 1109  , Epsi: 0  | Comp: 0  | Success Rate: 0.0 %
+
+Simple Breakdown:
+Episodes: 1110
+Successful Episodes: 0
+Failed Episodes: 1110
+Success Rate: 0.0 %
+Success Episode Array: [0. 0. 0. ... 0. 0. 0.]
+```
+
+![An example with too few episodes](Resources/TooFewEpisodes.png)
+
+In this case, not only did our algorithm never find the goal. As it started to rely on Q-Values more as opposed to taking random actions, the episode length sky rocketed from ~30 to ~100.
+
+This appears to be an issue at up to around ~10,000 episodes as well.
+
+#### High Episode Count
+
+```python
+run_episodes(50000, epsilon_change=0.000022, slippery=False, learning_rate=0.001)
+```
+
+```
+Ran using the following settings:
+Episodes: 50000
+Learning Rate: 0.001
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 2.2e-05
+Slippery: False
+
+Ep 4999  , Epsi: 0.89  | Comp: 35  | Success Rate: 0.7000000000000001 %
+Ep 9999  , Epsi: 0.78  | Comp: 191  | Success Rate: 1.9 %
+Ep 14999  , Epsi: 0.67  | Comp: 806  | Success Rate: 5.4 %
+Ep 19999  , Epsi: 0.56  | Comp: 2061  | Success Rate: 10.299999999999999 %
+Ep 24999  , Epsi: 0.45  | Comp: 4119  | Success Rate: 16.5 %
+Ep 29999  , Epsi: 0.34  | Comp: 6965  | Success Rate: 23.200000000000003 %
+Ep 34999  , Epsi: 0.23  | Comp: 10579  | Success Rate: 30.2 %
+Ep 39999  , Epsi: 0.12  | Comp: 14756  | Success Rate: 36.9 %
+Ep 44999  , Epsi: 0.01  | Comp: 19511  | Success Rate: 43.4 %
+Ep 49999  , Epsi: 0  | Comp: 24510  | Success Rate: 49.0 %
+
+Simple Breakdown:
+Episodes: 50000
+Successful Episodes: 24511
+Failed Episodes: 25489
+Success Rate: 49.022 %
+Success Episode Array: [  0.   0.   0. ... 100. 100. 100.]
+```
+
+![An example with too many episodes](Resources/TooManyEpisodes.png)
+
+On the other hand, running 50,000 episodes gets us to an eventual 100% successful episode rate and low episode length (~15). The success rate and episode length converges to these values when $\epsilon$ approaches 0. We have already likely found our optimal path earlier, however, we are still trying the occasional random action when $\epsilon \neq 0$ which will cause some failed episodes and un-optimal episode length. While this gets us a good result and is not really an issue with a simple problem like this, running unnecessary episodes for a more complex problem can add a lot of runtime which is unideal.
+
+#### Ideal Episode Count
+
+```python
+run_episodes(20000, epsilon_change=0.000053, slippery=False, learning_rate=0.001)
+```
+```
+Ran using the following settings:
+Episodes: 20000
+Learning Rate: 0.001
+Discount Factor: 0.95
+Initial Epsilon: 1
+Epsilon Decay (per episode): 5.3e-05
+Slippery: False
+
+Episode 1999  , Epsilon: 0.894  | Completions so Far: 16  | Success Rate so Far: 0.8 %
+Episode 3999  , Epsilon: 0.788  | Completions so Far: 91  | Success Rate so Far: 2.3 %
+Episode 5999  , Epsilon: 0.682  | Completions so Far: 310  | Success Rate so Far: 5.2 %
+Episode 7999  , Epsilon: 0.576  | Completions so Far: 809  | Success Rate so Far: 10.100000000000001 %
+Episode 9999  , Epsilon: 0.47  | Completions so Far: 1587  | Success Rate so Far: 15.9 %
+Episode 11999  , Epsilon: 0.364  | Completions so Far: 2681  | Success Rate so Far: 22.3 %
+Episode 13999  , Epsilon: 0.258  | Completions so Far: 4030  | Success Rate so Far: 28.799999999999997 %
+Episode 15999  , Epsilon: 0.152  | Completions so Far: 5655  | Success Rate so Far: 35.3 %
+Episode 17999  , Epsilon: 0.046  | Completions so Far: 7478  | Success Rate so Far: 41.5 %
+Episode 19999  , Epsilon: 0  | Completions so Far: 9461  | Success Rate so Far: 47.3 %
+
+Simple Breakdown:
+Episodes: 20000
+Successful Episodes: 9462
+Failed Episodes: 10538
+Success Rate: 47.31 %
+Success Episode Array: [  1.   1.   1. ... 100. 100. 100.]
+```
+![An example with too many episodes](Resources/IdealEpisodes.png)
+
+Running 20,000 episodes produces very similar results to running 50,000 episodes but would take less than half the runtime. Our episode length and successful episode rate still converges to their optimal values. When using reinforcement learning, it is important not to waste valuable resources on a problem that does not require it.
+
+Our optimal path as per Q-Values after 20,000 episodes:
+<br/>
+![Optimal Path](Resources/OptimalPath1.gif)
+
+```
+Optimal Result (as determined by Q-Values):
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 1
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 2
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 3
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 4
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 5
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 6
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 7
+Action taken: Right  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 8
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 9
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 10
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 11
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 12
+Action taken: Down  | Reward Given: 0.0  | Terminated: False  | Actions Taken: 13
+Action taken: Down  | Reward Given: 1.0  | Terminated: True  | Actions Taken: 14
+```
+
+We can see that the best result is in 14 actions and it is to go down 1 space, then to the furthest right position, then down to the bottom. Of course this is with `is_slippery` mode set to `False`, we will see that with it on later, the results will change significantly.
+
+
+
+
+
+## Potential Improvements
+### Negative Rewards
 
 
 ## Full Code
@@ -497,6 +646,37 @@ def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, 
     axs[1].set_xlabel("Episode")
     axs[1].set_ylabel("Length")
 
+```
+
+## Additional Function to Visualize the Optimal Path Based on Q-Values
+```python
+def visualize_best_result(episodes, q, slippery=True):
+    print("")
+    print("Optimal Result (as determined by Q-Values:")
+
+    action_array = ["Left", "Down", "Right", "Up"]
+    actions_taken = 0
+    
+    env = gym.make("FrozenLake-v1", map_name="8x8", is_slippery=slippery, render_mode="human")
+
+    for _ in range(episodes):
+        state, info = env.reset()
+
+        while True:
+            action = np.argmax(q[state,:])
+
+            new_state, reward, terminated, truncated, info = env.step(action)
+
+            state = new_state
+
+            if _ == 0:
+                actions_taken += 1
+                print("Action taken:", action_array[action], " | Reward Given:", reward, " | Terminated:", terminated, " | Actions Taken:", actions_taken)
+
+            if terminated or truncated:
+                break
+
+    env.close()
 ```
 
 ## Resources Used
