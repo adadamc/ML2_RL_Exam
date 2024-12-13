@@ -139,7 +139,7 @@ I have set some default values for a lot of these paramaters, however, optimal v
 ## Keeping Track of Results
 We will create some NumPy arrays to help track results so we can see the effectiveness of our implementation.
 ```python
-# 64 states (0 to 63) and 4 actions (0 = left, 1 = down, 2 = right, 3 = up)
+    # 64 states (0 to 63) and 4 actions (0 = left, 1 = down, 2 = right, 3 = up)
     q = np.zeros((env.observation_space.n, env.action_space.n)) # q-value storage
     rng = np.random.default_rng() # random number from 0 to 1 (to determine if random action should be taken)
     completions = np.full(episodes,False)
@@ -205,7 +205,7 @@ Let's break it down step by step:
 ### Monitoring Current Progress
 
 ```python
-for _ in range(episodes):
+    for _ in range(episodes):
         state, info = env.reset()
 ```
 
@@ -218,7 +218,7 @@ The values returned by the reset function are as follows:
 |info|`{'prob': 1}` (since you always start in position 0)|
 
 ```python
-if (_+1)%checkpoints==0:
+    if (_+1)%checkpoints==0:
             print("Ep", _, " , Epsi:", round(epsilon,3), " | Comp:", completions.sum(), " | Success Rate:", round(completions.sum()/_,3)*100,"%")
 ```
 
@@ -231,7 +231,7 @@ This output tells us that as of the 2,000th episode (count starts at 0), the eps
 ### Epsilon and Exploration
 
 ```python
-while True:
+    while True:
 
             if rng.random() < epsilon:
                 action = env.action_space.sample() # Random action
@@ -258,7 +258,7 @@ If the epsilon value is too low, we risk missing out on a potentially better sol
 
 ### Taking our Action
 ```python
-new_state, reward, terminated, truncated, info = env.step(action)
+            new_state, reward, terminated, truncated, info = env.step(action)
 
             if reward == 1:
                 completions[_] = True
@@ -342,11 +342,13 @@ Finally, if this episode results in us reaching one of the 3 end conditions (goa
     print("Failed Episodes:", (episodes-completions.sum()))
     print("Success Rate:", round(((completions.sum())/(episodes))*100,3), "%")
     print("Success Episode Array:", np.convolve(completions, np.ones(100), 'valid'))
+
+    # np.convolve will compute the rolling sum for 100 episodes
 ```
 
 After finishing the last episode, I have added a short pause (this is mostly for if we are visualizing the environment so the final result can be seen for longer. Afterwards, the environment is closed using `env.close()`, this will also close any rendering windows. Afterwards, some useful statistics are printed in the following format:
 
-```python
+```
 Simple Breakdown:
 Episodes: 20000
 Successful Episodes: 9870
@@ -359,11 +361,143 @@ The number of episodes, successful episodes, failed episodes, success rate, and 
 
 ### Visualizing the Results
 
+```python
+    fig, axs = plt.subplots(1, 2, figsize=(20, 8))
+
+    axs[0].plot(np.convolve(completions, np.ones(100), 'valid'))
+    axs[0].set_title("Successful Episodes")
+    axs[0].set_xlabel("Episode")
+    axs[0].set_ylabel("# of Successful Episodes Out of Past 100")
+
+    ax2 = axs[0].twinx()
+    ax2.plot(np.convolve(ep_epsilons, np.ones(100), 'valid') / 100, color='red')
+    ax2.set_ylabel("Epsilon (Rolling 100 Episode Mean)")
+    ax2.set_ylim([0, 1])
+    
+
+    axs[1].plot(np.convolve(ep_lengths, np.ones(100), 'valid') / 100)
+    axs[1].set_title("Episode Lengths")
+    axs[1].set_xlabel("Episode")
+    axs[1].set_ylabel("Length")
+
+```
+
+This code will print out two plots side by side. The first plot takes the rolling sum of the last 100 completion values, for example if 40/100 of the last completion values are `True`, the plotted y-axis value at that episode will be `40`. On a second y-axis, we will also plot the Epsilon value, calculated as the rolling mean of the last 100 episodes. For example, if 100 episodes ago $\epsilon = 0.5$ and it went down at a linear rate to $\epsilon = 0.4$, the plotted value at that episode would be $\epsilon = 0.45$.
+
+The second plot will show the rolling average (last 100 episodes) episode length. This is the amount of actions taken before reaching one of the end conditions (falling into a hole, reaching the goal, episode length limit).
+
+Here is a sample image of what these two plots may look like:
+<br/>
+![Sample Plots](Resources/plots.png)
+<br/>
+This is the final part of the `run_episodes` function. Let's look into some results now.
+
+
 
 ## Results and Observations
 
 
 ## Full Code
+```python
+
+# Runs the requested amount of episodes using Q-Learning
+# episodes = # of episodes to run through
+# learning_rate = 0 to 1, closer to 1 results in newer episodes taking higher priority in the q-values, changing the values faster
+# discount_factor = 0 to 1, closer to 1 values future rewards highly, closer to 0 focuses on immediate rewards more
+# epsilon = 0 to 1, chance of taking a random action (1 is always random, 0 is always optimal action as per q values)
+# epsilon_change = how much to lower epsilon by per episode (over time max q-value should take priority and exploration minimized)
+# slippery = If False, the action requested is always followed through on. If True, the action requested is followed through on 1/3 of the time,
+#            and the two perpendicular actions are taken 1/3 of the time each (ex. request=left (1/3 chance), 1/3 chance of slipping up, 1/3 of down)
+# render = None for no visualization, "Human" to see visualization
+
+def run_episodes(episodes, learning_rate=0.05, discount_factor=0.95, epsilon=1, epsilon_change=0.01, slippery=True, render=None):
+    env = gym.make("FrozenLake-v1", map_name="8x8", is_slippery=slippery, render_mode=render)
+
+    # 64 states (0 to 63) and 4 actions (0 = left, 1 = down, 2 = right, 3 = up)
+    q = np.zeros((env.observation_space.n, env.action_space.n)) # q-value storage
+    rng = np.random.default_rng() # random number from 0 to 1 (to determine if random action should be taken)
+    completions = np.full(episodes,False)
+    ep_lengths = np.zeros(episodes)
+    ep_epsilons = np.zeros(episodes)
+    checkpoints = math.floor(episodes/10) # Print statement at 10% completion intervals
+
+    print("Ran using the following settings:")
+    print("Episodes:", episodes)
+    print("Learning Rate:", learning_rate)
+    print("Discount Factor:", discount_factor)
+    print("Initial Epsilon:", epsilon)
+    print("Epsilon Decay (per episode):", epsilon_change)
+    print("Slippery:", slippery)
+    print("")
+
+    for _ in range(episodes):
+        state, info = env.reset()
+        
+        if (_+1)%checkpoints==0:
+            print("Ep", _, " , Epsi:", round(epsilon,3), " | Comp:", completions.sum(), " | Success Rate:", round(completions.sum()/_,3)*100,"%")
+          
+
+        while True:
+
+            if rng.random() < epsilon:
+                action = env.action_space.sample() # Random action
+            else:
+                action = np.argmax(q[state,:])
+
+            # new_state: After taking the action calculated above, what position are we now in? (0-63)
+            # reward: The reward for taking that action (reach goal = +1, reach hole/frozen = 0)
+            # terminated: True if the player moves into a hole OR the player reaches the goal
+            # truncation: True if the limit (length of episode) is reached, this is 200 for 8x8 env
+            # info: number from 0 to 1 with odds of taking the action requested (1/3 if is_slippery, 1 otherwise)
+            new_state, reward, terminated, truncated, info = env.step(action)
+
+            if reward == 1:
+                completions[_] = True
+
+            q[state,action] = q[state,action] + learning_rate * (reward + discount_factor * max(q[new_state,:]) -q[state,action])
+
+            state = new_state
+            ep_lengths[_] += 1
+
+            if terminated or truncated:
+                break
+
+        ep_epsilons[_] = epsilon
+        epsilon -= epsilon_change # Lower Epsilon by specified amount
+        if epsilon < 0:
+            epsilon = 0
+
+    time.sleep(0.5)
+    env.close()
+    
+    print("\nSimple Breakdown:")
+    print("Episodes:", episodes)
+    print("Successful Episodes:", completions.sum())
+    print("Failed Episodes:", (episodes-completions.sum()))
+    print("Success Rate:", round(((completions.sum())/(episodes))*100,3), "%")
+    print("Success Episode Array:", np.convolve(completions, np.ones(100), 'valid'))
+
+    # np.convolve will compute the rolling mean for 100 episodes
+
+    fig, axs = plt.subplots(1, 2, figsize=(20, 8))
+
+    axs[0].plot(np.convolve(completions, np.ones(100), 'valid'))
+    axs[0].set_title("Successful Episodes")
+    axs[0].set_xlabel("Episode")
+    axs[0].set_ylabel("# of Successful Episodes Out of Past 100")
+
+    ax2 = axs[0].twinx()
+    ax2.plot(np.convolve(ep_epsilons, np.ones(100), 'valid') / 100, color='red')
+    ax2.set_ylabel("Epsilon (Rolling 100 Episode Mean)")
+    ax2.set_ylim([0, 1])
+    
+
+    axs[1].plot(np.convolve(ep_lengths, np.ones(100), 'valid') / 100)
+    axs[1].set_title("Episode Lengths")
+    axs[1].set_xlabel("Episode")
+    axs[1].set_ylabel("Length")
+
+```
 
 ## Resources Used
 - AI (CSCI 4610U) Lectures: Winter 2024 Semester
