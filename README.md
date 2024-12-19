@@ -1,9 +1,3 @@
-# Machine Learning 2 (CS 4052U) Take Home Exam
-
-**Chosen Topic:** Reinforcement Learning of Practical Problems
-
-____________________
-
 # Utilizing Q-Learning in Gymnasium: Step by Step
 
 ## Brief Gymnasium Overview
